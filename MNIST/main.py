@@ -4,6 +4,7 @@ import torch
 import torchvision
 
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from unet import UNet
 from ddpm import DenoiseDiffusion
@@ -26,17 +27,19 @@ def main():
 
     # Configs
     n_steps: int = 1000
-    n_epochs: int = 2
-    batch_size: int = 256
+    n_epochs: int = 10
+    batch_size: int = 64
     learning_rate: float = 2e-5
     image_size = 32
+    image_channels = 1
+    n_samples = 16 # Samples to sample at end of every epoch for test
 
     device = 'cpu'
     if torch.cuda.is_available():
         device = 'cuda'
 
     eps_model = UNet(
-        image_channels=1,
+        image_channels=image_channels,
         n_channels=64,
         ch_mults=[1, 2, 2, 4],
         is_attn=[False, False, False, True]
@@ -65,11 +68,26 @@ def main():
             optimizer.step()
 
             _loss.append(loss.item())
-            print("    loss = {:.4f}".format(_loss[-1]))
-
+        
         # ----------------------------- Sample ---------------------------------
+        with torch.no_grad():
+            x = torch.randn([n_samples, image_channels, image_size, image_size], device=device)
 
-        print("End of epoch {}      Loss = {:.3f}".format(i+1, np.mean(_loss)))
+            for _t in tqdm(range(n_steps), desc="Sampling from model..."):
+                t = n_steps - 1 - _t
+                x = diffusion.p_sample(x, x.new_full((n_samples,), t, dtype=torch.long))
+
+            fig, ax = plt.subplots(1, n_samples, figsize=(2.5*n_samples, 2.5))
+            for j in range(n_samples):
+                ax[j].imshow(x[j].cpu().numpy()[0])
+                ax[j].axis('off')
+            plt.savefig('zoo/{:02d}'.format(i), bbox_inches='tight')
+
+
+        print("\nEnd of epoch {}      Loss = {:.3f}".format(i+1, np.mean(_loss)))
+
+    # Save model
+    torch.save(eps_model.state_dict(), 'zoo/eps_model.pth')
 
     
 
