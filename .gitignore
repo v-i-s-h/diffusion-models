@@ -132,3 +132,4 @@ dmypy.json
 # Data and models
 data/
 zoo/
+logs/
