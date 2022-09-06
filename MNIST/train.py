@@ -3,7 +3,6 @@
 import os
 import argparse
 from datetime import datetime
-from tokenize import String
 
 import numpy as np
 import torch
@@ -49,7 +48,7 @@ def main():
     n_epochs: int = args.epochs
     batch_size: int = args.batch_size
     learning_rate: float = args.learning_rate
-    outdir: String = args.out_dir
+    outdir: str = args.out_dir
     
     # For MNIST
     image_size = 32 #
